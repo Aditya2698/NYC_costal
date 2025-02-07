@@ -1,0 +1,129 @@
+Here is the description of the modified NYC environment:
+
+The primary contribution of the new study will be that it considers system effects by considering the boroughs of New York, modeling each as a component, considering system interactions to be based on real-life dependence/connection between the boroughs. 
+
+Each sub-system/component will be defined by a wedge. The exact details describing the wedge (Cost, dimensions etc.) will be defined later. 
+
+First we describe the state, action and reward formulation at the component level (section A below). We then describe the component details in Section B and finally describe the system effects in Section C which consideres system interection by modifying the corresponding flooding rewards.
+
+A) Wedge component defination: State, action and reward for individual component:
+
+Each component (wedge) will have 2 possible dynamic actions combinations and can be define by one of the following 4 enviroment defination:
+
+   i) Two floodwall F1 and F2: This is the same as the original environment in single_wedge_2_dike_environment.py)
+   ii) Green_space and floodwall F: The environment is defined in the MATLAB code Green_space_and_dike.m
+   iii) Oyster reef and floodwall F: defined in Oyster_Reef_and_dike.m: The environment is defined in the MATLAB code Oyster_Reef_and_dike.m
+   iv) Salt marsh and floodwall F: The environment is defined in the MATLAB code Salt_Marsh_and_dike.m
+
+ii, iii, and iv are nature based solutions and the major difference with i is that we have a green_space, oyster reef, or salt marsh in the wedge in place of the lower floodwall F1.
+
+Despite these differences, the cost calculations for each component/subsystem would involve the following cost components:
+
+1. Cost of construction:
+ - Costs for constructing floodwalls/nature based solutions 
+
+2. Flood Damage Costs:
+ - Depend on the flooded volume and vulnerability of the component.
+ - C_f(s) = f_damage * V_zone * (V_flooded / V_zone), where f_damage is the flood vulnerability factor.
+ - Based on the 2 actions, each component will have 4 system configuration/states (next_system). The corresponding flood damage cost need to be defined for each of the environment defination.
+
+3. Maintenance Costs:
+ - Annual costs for maintaining constructed flood protection assets.
+
+4. Environmental cost of carbon:
+ - Life-cycle greenhouse gas (GHG) emissions are translated into monetary costs using the Social Cost of Carbon (SCC).
+ - GHG emissions are calculated for construction and maintenance costs
+ - In case the component has green infrastructure, it will absorb the carbon released in the atmosphere based on its capacity. This will reduce the GHG emissions and the corresponding costs.	
+
+
+As the first step, let's define the python code for the cost calculations for the 4 environment defination. 
+
+
+--------------------------------
+
+B) Component Details and Parameters:
+--------------------------------
+
+The NYC environment consists of 5 components representing different boroughs/regions:
+
+1. Bronx (Component 1): Define using component defination i i.e. two floodwalls F1 and F2
+   - Exposure value (e): 2.5 million $/m width
+   - Vulnerability factor (f_damage): 0.07
+   - City height (h): 9.75 m
+   - City depth (d): 6.5 km
+   - Slope (s): 9.75/(6.5*1000) = 0.0015
+   - Optional features: None
+
+2. Manhattan (Component 2): Define using component defination ii i.e. green_space and floodwall F with initial seawall height of 1.5 m
+   - Exposure value (e): 15.3 million $/m width
+   - Vulnerability factor (f_damage): 0.07
+   - City height (h): 8.5 m
+   - City depth (d): 1.0 km
+   - Slope (s): 8.5/(1*1000) = 0.0085
+   
+
+3. Brooklyn (Component 3): Define using component defination i i.e. two floodwalls F1 and F2
+   - Exposure value (e): 4.5 million $/m width
+   - Vulnerability factor (f_damage): 0.07
+   - City height (h): 13.7 m
+   - City depth (d): 5.6 km
+   - Slope (s): 13.7/(5.6*1000) = 0.00244643
+
+
+4. Queens (Component 4): Define using component defination iii i.e. oyster reef and floodwall F.
+   - Exposure value (e): 5.5 million $/m width
+   - Vulnerability factor (f_damage): 0.07
+   - City height (h): 19.8 m
+   - City depth (d): 8.85 km
+   - Slope (s): 19.8/(8.85*1000) = 0.00223729
+
+5. Staten Island (Component 5): Define using component defination iv i.e. salt marsh and floodwall F.
+   - Exposure value (e): 3.0 million $/m width
+   - Vulnerability factor (f_damage): 0.07
+   - City height (h): 15.24 m
+   - City depth (d): 8.0 km
+   - Slope (s): 15.24/(8*1000) = 0.001905
+
+
+--------------------------------
+C) System effects and interactions:
+--------------------------------
+
+All the above calculations are done at the component level. The system level effects because of interaction/dependence between 2 component would primarily be considered through flooding in adjacent regions. 
+
+The following component pairs have system interactions:
+
+1. Brooklyn-Bronx: Shared infrastructure
+
+2. Bronx-Manhattan: Shared infrastructure
+
+3. Manhattan Upper-Lower: Adjacent regions with shared flood pathway
+
+4. Manhattan-Brooklyn: Shared infrastructure
+
+5. Brooklyn-Queens: Adjacent regions with shared flood pathway through Jamica Bay
+
+6. Staten Island-Brooklyn: Shared infrastructure
+
+
+The system intereaction is defined as follows: If lower floodwall is not constructed in adjacent region, flood damage in current region increases by a fixed percentage i% (e.g. 20%). 
+For component configuration i, the lower floodwall refers to F1 and for all other confiurations with nature based solutions, the lower floodwall refers to F.
+
+For each interacting pair, the flooding reward calculation is to be modified as follows:
+- If a floodwall is not constructed in the adjacent region, the flood damage cost (C_f) in the current region is increased by i% (e.g. 20%).
+- This represents an i% increase in flood damage due to lateral flooding effects
+- The modification needs to consider the slope of the adjacent region. That is the lateral flooding only occurs from region of higher slope to lower slope.
+
+For example:
+Consider Manhattan and Brooklyn. Since Manhattan has a higher slope, the lateral flooding only occurs from Manhattan to Brooklyn, the system interaction is defined as follows: 
+
+If Manhattan has no floodwall constructed, the flood damage in Brooklyn increases by i%.
+However, if Brooklyn has no floodwall constructed, the flood damage in Manhattan remains the same.
+
+
+The python code for the cost calculations for the 4 environment defination defined in section A should be able to handle these system effects by:
+1. Identifying the adjacent region for each component
+2. Checking the floodwall construction status in the adjacent region
+3. Applying the i% increase to flood damage costs when conditions are met
+
+

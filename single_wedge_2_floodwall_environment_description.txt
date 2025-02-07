@@ -1,0 +1,104 @@
+Problem Description:
+--------------------
+The coastal flood risk mitigation problem is formulated as a Markov Decision Process (MDP) to adaptively manage flood risks over a finite time horizon of 40 years. The goal is to minimize total costs associated with flood damages, infrastructure construction and maintenance, and environmental impacts from greenhouse gas (GHG) emissions. The problem incorporates the effects of climate change through non-stationary sea level rise (SLR) and stationary storm surge models. Decision-making involves constructing flood protection measures (e.g., floodwalls) to mitigate flood risks while balancing costs and environmental impacts.
+
+1. State Space:
+-----------------
+
+Definition:
+The state space represents the total peak water level resulting from a combination of sea level rise (SLR) and storm surge. It is discretized to form a finite state space for the MDP formulation. System configuration, as defined by the presence or absence of floodwalls, is also considered as part of the state space. However, The actions results in deterministic system configuration transitions independent of the total peak water level state defined by the SLR and storm surge. 
+
+- Sea Level Rise (SLR):
+  - Discretized with a step size of 2 cm, resulting in 77 discrete states.
+  - Non-stationary: SLR evolves unequally over time, making the rate of SLR vary yearly. This non-stationarity is incorporated into the state space.
+
+- Storm Surge:
+  - Simulated using a stationary Generalized Extreme Value (GEV) distribution.
+  - Discretized into 72 levels with a 10 cm step size, covering surges up to 700 cm.
+
+- Combined State Space:
+  - Combining 77 SLR states and 72 surge states results in 5,544 states.
+  - For a finite horizon of 40 years, incorporating non-stationarity in SLR results in 5544*40 = 221,760 states.
+
+System Configurations:
+- System states include four configurations, defined by the presence or absence of floodwalls:
+  1. No floodwalls (FN).
+  2. Only lower floodwall (F1).
+  3. Only higher floodwall (F2).
+  4. Both floodwalls (F1, F2).
+- Combining these configurations with water levels results in a total of 665,280 states for the finite horizon problem.
+
+Finite Horizon Formulation:
+- An additional absorbing state is added to mark the end of the 40-year decision horizon.
+
+2. Actions:
+------------
+
+Definition:
+Actions represent flood protection measures taken at each time step. The available actions in the coastal city setting are:
+
+1. Do Nothing (a_FN): No flood protection measures are implemented.
+2. Construct Lower Floodwall (a_F1): Implement the first floodwall.
+3. Construct Higher Floodwall (a_F2): Implement the second floodwall.
+4. Construct Both Floodwalls (a_F1,F2): Implement both floodwalls simultaneously.
+
+Transition Dynamics:
+The system transitions deterministically between configurations based on the actions taken:
+
+- system_trans[1]: Do Nothing (a_FN)
+Under this action, the system remains in its current configuration, and state transitions depend only on SLR and storm surge probabilities.
+
+- system_trans[2]: Construct Lower Floodwall (a_F1)
+- From configuration A: Transitions to B (constructing F1).
+- From configuration B: Remains in B (F1 already constructed).
+- From configuration C: Transitions to D (adding F1 to F2).
+- From configuration D: Remains in D (both F1 and F2 already constructed).
+
+- system_trans[3]: Construct Higher Floodwall (a_F2)
+- From configuration A: Transitions to C (constructing F2).
+- From configuration B: Transitions to D (adding F2 to F1).
+- From configuration C: Remains in C (F2 already constructed).
+- From configuration D: Remains in D (both F1 and F2 already constructed).
+
+- system_trans[4]: Construct Both Floodwalls (a_F1,F2)
+- From configuration A: Transitions to D (constructing both F1 and F2).
+- From configuration B: Transitions to D (adding F2 to F1).
+- From configuration C: Transitions to D (adding F1 to F2).
+- From configuration D: Remains in D (both F1 and F2 already constructed).
+
+3. Transition Probabilities (P):
+---------------------------------
+
+Under Do-Nothing:
+- SLR Transition Probabilities: Derived from Monte Carlo simulations of non-stationary climate models, representing the likelihood of transitioning between SLR states across years.
+- Storm Surge Transition Probabilities: Obtained from the stationary GEV distribution.
+
+With Flood Measures:
+- Transition probabilities become deterministic for system state transitions caused by floodwall implementation, as defined by the system transition matrices above.
+
+4. Reward Function (R):
+------------------------
+
+Components:
+The rewards are cost-based and include:
+
+1. Implementation Costs:
+ - Costs for constructing floodwalls are calculated based on unit height and length costs.
+
+2. Flood Damage Costs:
+ - Depend on the flooded volume, vulnerability of the affected zones, and the system configuration.
+ - C_f(s) = f_damage * V_zone * (V_flooded / V_zone), where f_damage is the flood vulnerability factor.
+ - single_wedge_2_dike_environment.py defines the flood damage cost for each of the 4 system configuration depending on the area flooded and protected by the floodwalls.
+
+3. Maintenance Costs:
+ - Annual costs for maintaining constructed flood protection assets.
+
+4. Environmental Costs:
+ - Life-cycle greenhouse gas (GHG) emissions are translated into monetary costs using the Social Cost of Carbon (SCC).
+ - GHG emissions are calculated for construction, maintenance, and post-damage recovery.
+
+Reward Formulation:
+- For Do-Nothing: Reward reflects flood damage costs.
+- R(s, a_FN) = C_f(s).
+- For actions a_{F1}, a_{F2}, a_{F1,F2}: Reward includes implementation costs, flood damage costs under the new system, and maintenance costs.
+  - R(s, a_i) = C_f(s) + C_implementation(a_i) + C_maintenance(a_i).

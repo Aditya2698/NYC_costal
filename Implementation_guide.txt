@@ -1,0 +1,125 @@
+NYC Flood Protection Environment Implementation Guide
+==================================================
+
+Overview
+--------
+This guide describes the implementation of a flood protection environment for NYC boroughs, modeling each borough as a component with different protection measures and system interactions.
+
+Key Components
+-------------
+1. Cost Calculator Modules
+2. Environment Factory
+3. NYC Environment Class
+4. Parameter Classes
+5. System Interaction Handler
+
+Detailed Implementation Plan
+---------------------------
+
+Phase 1: Cost Calculator Modules
+-------------------------------
+Create separate modules for each environment type's cost calculations:
+
+1. TwoFloodwallCosts:
+   - Used by: Bronx, Brooklyn
+   - Source: single_wedge_2_floodwall_environment.py
+   - Implements the original two floodwall environment with no wave attenuation
+   - Defines all cost calculations including flood damage, construction, maintenance and carbon costs
+
+2. GreenSpaceCosts:
+   - Used by: Manhattan
+   - Source: Green_space_and_floodwall.m
+   - Implements green space with floodwall environment including initial seawall
+   - Defines all cost calculations including modified flood damage with green space effects
+
+3. OysterReefCosts:
+   - Used by: Queens
+   - Source files:
+     * Oyester_reef_and_floodwall.m - Main environment implementation
+     * Oyester_reef_wave_attenuation.m - Wave attenuation calculations
+   - Implements oyster reef with floodwall environment including wave attenuation effects
+
+4. SaltMarshCosts:
+   - Used by: Staten Island
+   - Source files:
+     * Salt_marsh_and_floodwall.m - Main environment implementation
+     * Salt_marsh_wave_attenuation.m - Wave attenuation calculations
+   - Implements salt marsh with floodwall environment including wave attenuation effects
+
+Each cost calculator should exactly replicate the calculations from its source file, converting the MATLAB implementations to Python while maintaining the same parameters, formulas and logic.
+
+Phase 2: Parameter Classes
+-------------------------
+Create parameter classes for each borough's specific characteristics:
+
+1. Define common parameters:
+   - Exposure value
+   - Vulnerability factor
+   - City height/depth
+   - Slope
+
+2. Create borough-specific parameter classes:
+   - BronxParams
+   - ManhattanParams
+   - BrooklynParams
+   - QueensParams
+   - StatenIslandParams
+
+Phase 3: Environment Factory
+---------------------------
+Implement factory class to create appropriate cost calculators:
+
+1. EnvironmentCostFactory:
+   - Create methods for each environment type
+   - Handle parameter initialization
+   - Return appropriate cost calculator instance
+
+Phase 4: NYC Environment Implementation
+-------------------------------------
+Implement main environment class:
+
+1. State Space:
+   - Combined water level states (SLR + surge)
+   - System configurations for each component
+   - 40-year horizon consideration
+
+2. Action Space:
+   - Component-specific actions
+   - Action validation and constraints
+
+3. Cost Calculation:
+   - Component-level costs
+   - System interaction effects
+   - Total cost aggregation
+
+4. System Dynamics:
+   - State transitions
+   - Configuration changes
+   - Non-stationary SLR consideration
+
+Phase 5: System Interaction Implementation
+----------------------------------------
+Implement system interaction effects:
+
+1. Define interaction pairs:
+   - Brooklyn-Bronx
+   - Bronx-Manhattan
+   - Manhattan Upper-Lower
+   - Manhattan-Brooklyn
+   - Brooklyn-Queens
+   - Staten Island-Brooklyn
+
+2. Implement interaction logic:
+   - Slope-based flooding effects
+   - Protection status checking
+   - Damage modification (i% increase)
+
+Phase 6: Testing and Validation
+------------------------------
+1. Unit tests for each cost calculator
+2. Integration tests for system interactions
+3. Validation of flood damage calculations
+4. Performance testing for large state spaces
+
+File Structure
+-------------
