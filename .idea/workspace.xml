@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="78c1d492-abb9-48aa-8265-5ce8fa04d224" name="Changes" comment="Defined the NYC environment as per NYC_environment_description.txt.&#10; Added Python code for two_floodwall_costs.py and green_space_costs.py and">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="78c1d492-abb9-48aa-8265-5ce8fa04d224" name="Changes" comment="Defined the NYC environment as per NYC_environment_description.txt.&#10; Added Python code for two_floodwall_costs.py and green_space_costs.py and" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -14,6 +12,9 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GithubDefaultAccount">
+    <option name="defaultAccountId" value="f3ebddf0-c994-41db-9f09-4ba186a75c8b" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 2
@@ -56,7 +57,15 @@
       <option name="project" value="LOCAL" />
       <updated>1738964351241</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Defined the NYC environment as per NYC_environment_description.txt.&#10; Added Python code for two_floodwall_costs.py and green_space_costs.py and">
+      <option name="closed" value="true" />
+      <created>1738964627668</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1738964627668</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

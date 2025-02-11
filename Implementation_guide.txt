@@ -1,125 +1,90 @@
-NYC Flood Protection Environment Implementation Guide
-==================================================
+Modified NYC Environment Implementation Guide
+===============================================
 
 Overview
 --------
-This guide describes the implementation of a flood protection environment for NYC boroughs, modeling each borough as a component with different protection measures and system interactions.
+This guide describes the implementation of the modified NYC flood protection environment where the five boroughs are modeled as individual components. Each component uses its own cost calculator module based on its protection type (two-floodwall, green space, oyster reef, or salt marsh). In addition, system interactions are incorporated by modifying flood damage costs based on adjacent component states and slopes.
 
-Key Components
--------------
-1. Cost Calculator Modules
-2. Environment Factory
-3. NYC Environment Class
-4. Parameter Classes
-5. System Interaction Handler
+Key Points:
+- The water level state (derived from SLR and storm surge) is common across all components.
+- Each component is tracked separately with its own system state.
+- System interactions are applied by increasing the flood damage cost by i% (a generic percentage) for a component if an adjacent (higher-slope) component has not constructed its critical floodwall.
+- The cost for each component is broken down into:
+    1. Construction cost (monetary and associated carbon cost),
+    2. Maintenance cost (monetary and carbon cost),
+    3. Flood damage (risk of failure, including carbon cost),
+    4. Carbon uptake cost (if applicable).
+- All carbon costs from cost calculator methods will be multiplied by the Social Cost of Carbon (SCC) to convert them into monetary values.
+- The overall reward is the aggregation of all component costs (including adjustments from system interactions), and a separate record of rewards is maintained for each component.
 
-Detailed Implementation Plan
----------------------------
+Implementation Steps
+--------------------
 
-Phase 1: Cost Calculator Modules
--------------------------------
-Create separate modules for each environment type's cost calculations:
+1. **Component Initialization and Parameter Setup**
+   - For each of the 5 NYC components (Bronx, Manhattan, Brooklyn, Queens, Staten Island):
+     - Define local parameters (exposure value, slope, vulnerability factor, city height, city depth, etc.) as described in Section B.
+     - Instantiate the appropriate cost calculator module:
+       * Bronx and Brooklyn: TwoFloodwallCosts
+       * Manhattan: GreenSpaceCosts
+       * Queens: OysterReefCosts
+       * Staten Island: SaltMarshCosts
+     - Initialize a local system state for the component (indicating if the critical floodwall is built).
+     - (Optional) Maintain an action history if desired for overall environment logging, but note that system interactions only require the current system state.
 
-1. TwoFloodwallCosts:
-   - Used by: Bronx, Brooklyn
-   - Source: single_wedge_2_floodwall_environment.py
-   - Implements the original two floodwall environment with no wave attenuation
-   - Defines all cost calculations including flood damage, construction, maintenance and carbon costs
+2. **Water Level State Transition**
+   - Load and use SLR and storm surge transition matrices (as in single_wedge_2_floodwall_environment.py) to update the water level state for each timestep.
+   - The resulting water level (total height) is common and available to all components for computing flood damage.
 
-2. GreenSpaceCosts:
-   - Used by: Manhattan
-   - Source: Green_space_and_floodwall.m
-   - Implements green space with floodwall environment including initial seawall
-   - Defines all cost calculations including modified flood damage with green space effects
+3. **Local Cost Calculation for Each Component**
+   - For each component, based on its local system state and the current total water level:
+     - Call the cost calculator's methods to compute:
+       * Flood damage cost (including its carbon component),
+       * Construction cost (monetary and carbon),
+       * Maintenance cost (monetary and carbon),
+       * Carbon uptake (if applicable).
+     - Multiply all carbon cost components by the current Social Cost of Carbon (SCC) for conversion into monetary terms.
+   - Store these values separately for each component (e.g., in a dictionary or log structure).
 
-3. OysterReefCosts:
-   - Used by: Queens
-   - Source files:
-     * Oyester_reef_and_floodwall.m - Main environment implementation
-     * Oyester_reef_wave_attenuation.m - Wave attenuation calculations
-   - Implements oyster reef with floodwall environment including wave attenuation effects
+4. **System Interaction Handling**
+   - Predefine the set of interaction pairs with the information about slopes. For example, list the pairs (Higher slope → Lower slope) such as:
+     - Manhattan (slope = 0.0085) → Brooklyn (slope = 0.00244643)
+     - Manhattan → Bronx, Brooklyn → Queens, Brooklyn → Bronx, Brooklyn → Staten Island, etc.
+   - For each interaction pair:
+     - Check the higher-slope component's current system state (only the present configuration is needed) to determine if its critical floodwall is built. (Recall that for two-floodwall environments, F2 is critical; for the others, the single floodwall F is critical.)
+     - If the critical floodwall in the higher-slope component is **not** constructed, increase the flood damage cost of the lower-slope component by a factor of i% (e.g., multiply by (1 + i), where i is the generic percentage expressed as a decimal).
+   - Ensure that this lateral effect is unidirectional: only from higher to lower slope.
 
-4. SaltMarshCosts:
-   - Used by: Staten Island
-   - Source files:
-     * Salt_marsh_and_floodwall.m - Main environment implementation
-     * Salt_marsh_wave_attenuation.m - Wave attenuation calculations
-   - Implements salt marsh with floodwall environment including wave attenuation effects
+5. **Reward Aggregation**
+   - **Per Component:** Maintain a detailed record including:
+     - Construction cost (monetary and carbon cost),
+     - Maintenance cost (monetary and carbon cost),
+     - Flood risk (flood damage cost) and its carbon cost post system interaction adjustment,
+     - Carbon uptake credit (if applicable).
+   - **Overall Environment:** Sum the rewards (i.e., costs) from all 5 components to produce an aggregated overall cost.
+   - Apply any discount factor if needed before returning the overall reward.
 
-Each cost calculator should exactly replicate the calculations from its source file, converting the MATLAB implementations to Python while maintaining the same parameters, formulas and logic.
+6. **Action Handling and System State History**
+   - Define the environment's state and action space as a vector of actions corresponding to a component.
+   - For every timestep:
+     - Record the action taken for each component.
+     - Update the local system state for each component accordingly.
+     - Log the current system state for each component; system interactions only require checking the current system state.
 
-Phase 2: Parameter Classes
--------------------------
-Create parameter classes for each borough's specific characteristics:
+7. **System State and Data Logging**
+   - In the environment's data structure, maintain:
+     - A component-wise reward log (with breakdowns as described).
+     - A history of actions and current system state for each component.
+     - The common water level state for each timestep.
+   - These records will support debugging, analysis, and potential refinement of system interactions.
 
-1. Define common parameters:
-   - Exposure value
-   - Vulnerability factor
-   - City height/depth
-   - Slope
+8. **Final Output from step() Function**
+   - The environment's step() function should return:
+     - The updated water state (or observation) based on SLR and surge transitions.
+     - The aggregated overall reward (total cost), which incorporates individual component costs and system interaction adjustments.
+     - An info dictionary containing detailed, component-level reward breakdowns and system state data.
 
-2. Create borough-specific parameter classes:
-   - BronxParams
-   - ManhattanParams
-   - BrooklynParams
-   - QueensParams
-   - StatenIslandParams
+These steps form the blueprint for the modified NYC environment. They ensure that both component-specific and aggregate costs are tracked, that system interactions based on slope and floodwall status are applied using the current state, and that all carbon costs are properly converted to monetary values using the SCC.
 
-Phase 3: Environment Factory
----------------------------
-Implement factory class to create appropriate cost calculators:
+---
 
-1. EnvironmentCostFactory:
-   - Create methods for each environment type
-   - Handle parameter initialization
-   - Return appropriate cost calculator instance
-
-Phase 4: NYC Environment Implementation
--------------------------------------
-Implement main environment class:
-
-1. State Space:
-   - Combined water level states (SLR + surge)
-   - System configurations for each component
-   - 40-year horizon consideration
-
-2. Action Space:
-   - Component-specific actions
-   - Action validation and constraints
-
-3. Cost Calculation:
-   - Component-level costs
-   - System interaction effects
-   - Total cost aggregation
-
-4. System Dynamics:
-   - State transitions
-   - Configuration changes
-   - Non-stationary SLR consideration
-
-Phase 5: System Interaction Implementation
-----------------------------------------
-Implement system interaction effects:
-
-1. Define interaction pairs:
-   - Brooklyn-Bronx
-   - Bronx-Manhattan
-   - Manhattan Upper-Lower
-   - Manhattan-Brooklyn
-   - Brooklyn-Queens
-   - Staten Island-Brooklyn
-
-2. Implement interaction logic:
-   - Slope-based flooding effects
-   - Protection status checking
-   - Damage modification (i% increase)
-
-Phase 6: Testing and Validation
-------------------------------
-1. Unit tests for each cost calculator
-2. Integration tests for system interactions
-3. Validation of flood damage calculations
-4. Performance testing for large state spaces
-
-File Structure
--------------
+End of Guide

@@ -48,82 +48,85 @@ The NYC environment consists of 5 components representing different boroughs/reg
 
 1. Bronx (Component 1): Define using component defination i i.e. two floodwalls F1 and F2
    - Exposure value (e): 2.5 million $/m width
-   - Vulnerability factor (f_damage): 0.07
+   - Slope (s): 0.00149231 
+   - Vulnerability factor (f_damage): 0.17
+   - Total flooding cost (cf = -f_damage * e): -425,000 $/m width
    - City height (h): 9.75 m
    - City depth (d): 6.5 km
-   - Slope (s): 9.75/(6.5*1000) = 0.0015
-   - Optional features: None
 
 2. Manhattan (Component 2): Define using component defination ii i.e. green_space and floodwall F with initial seawall height of 1.5 m
    - Exposure value (e): 15.3 million $/m width
+   - Slope (s): 0.0085 
    - Vulnerability factor (f_damage): 0.07
+   - Total flooding cost (cf = -f_damage * e): -1,071,000 $/m width
    - City height (h): 8.5 m
    - City depth (d): 1.0 km
-   - Slope (s): 8.5/(1*1000) = 0.0085
-   
 
 3. Brooklyn (Component 3): Define using component defination i i.e. two floodwalls F1 and F2
    - Exposure value (e): 4.5 million $/m width
-   - Vulnerability factor (f_damage): 0.07
+   - Slope (s): 0.00244643
+   - Vulnerability factor (f_damage): 0.10
+   - Total flooding cost (cf = -f_damage * e): -450,000 $/m width
    - City height (h): 13.7 m
    - City depth (d): 5.6 km
-   - Slope (s): 13.7/(5.6*1000) = 0.00244643
 
-
-4. Queens (Component 4): Define using component defination iii i.e. oyster reef and floodwall F.
+4. Queens (Component 4): Define using component defination iii i.e. oyster reef and floodwall F
    - Exposure value (e): 5.5 million $/m width
-   - Vulnerability factor (f_damage): 0.07
+   - Slope (s): 0.00223729
+   - Vulnerability factor (f_damage): 0.14
+   - Total flooding cost (cf = -f_damage * e): -770,000 $/m width
    - City height (h): 19.8 m
    - City depth (d): 8.85 km
-   - Slope (s): 19.8/(8.85*1000) = 0.00223729
 
-5. Staten Island (Component 5): Define using component defination iv i.e. salt marsh and floodwall F.
+5. Staten Island (Component 5): Define using component defination iv i.e. salt marsh and floodwall F
    - Exposure value (e): 3.0 million $/m width
-   - Vulnerability factor (f_damage): 0.07
+   - Slope (s): 0.001905
+   - Vulnerability factor (f_damage): 0.16
+   - Total flooding cost (cf = -f_damage * e): -480,000 $/m width
    - City height (h): 15.24 m
    - City depth (d): 8.0 km
-   - Slope (s): 15.24/(8*1000) = 0.001905
 
 
 --------------------------------
-C) System effects and interactions:
+C) System effects and interactions
 --------------------------------
 
-All the above calculations are done at the component level. The system level effects because of interaction/dependence between 2 component would primarily be considered through flooding in adjacent regions. 
+The system interactions are implemented through a simple lateral flooding mechanism between adjacent components. Each component needs to know:
+1. Its adjacent components that can affect it
+2. The slope relationship with those components
 
-The following component pairs have system interactions:
+Interaction Pairs (Higher slope → Lower slope):
+1. Manhattan (0.0085) → Brooklyn (0.00244643)
+2. Manhattan (0.0085) → Bronx (0.00149231)
+3. Brooklyn (0.00244643) → Queens (0.00223729)
+4. Brooklyn (0.00244643) → Bronx (0.00149231)
+5. Brooklyn (0.00244643) → Staten Island (0.001905)
 
-1. Brooklyn-Bronx: Shared infrastructure
+Critical Floodwall Definition:
+- Two-floodwall environments (Bronx, Brooklyn): F2 is critical
+- Nature-based solution environments (Manhattan, Queens, Staten Island): F is critical
 
-2. Bronx-Manhattan: Shared infrastructure
+Flooding Effect Rule:
+If component A can affect component B (A has higher slope):
+- When A's critical floodwall is NOT constructed:
+  * B's flood damage is increased by i%
+- When A's critical floodwall IS constructed:
+  * No additional effect on B
+- B's floodwall state never affects A
 
-3. Manhattan Upper-Lower: Adjacent regions with shared flood pathway
+Implementation Requirements:
+1. Each component needs:
+   - List of components that can affect it (higher slope components)
+   - Method to check if those components have their critical floodwall
+   - Factor i to increase flood damage when affected
 
-4. Manhattan-Brooklyn: Shared infrastructure
+2. Cost Calculator Changes:
+   - Add method to check critical floodwall status
+   - Modify flood damage calculation to accept interaction effects
+   - Apply i% increase when affected by higher slope components
 
-5. Brooklyn-Queens: Adjacent regions with shared flood pathway through Jamica Bay
-
-6. Staten Island-Brooklyn: Shared infrastructure
-
-
-The system intereaction is defined as follows: If lower floodwall is not constructed in adjacent region, flood damage in current region increases by a fixed percentage i% (e.g. 20%). 
-For component configuration i, the lower floodwall refers to F1 and for all other confiurations with nature based solutions, the lower floodwall refers to F.
-
-For each interacting pair, the flooding reward calculation is to be modified as follows:
-- If a floodwall is not constructed in the adjacent region, the flood damage cost (C_f) in the current region is increased by i% (e.g. 20%).
-- This represents an i% increase in flood damage due to lateral flooding effects
-- The modification needs to consider the slope of the adjacent region. That is the lateral flooding only occurs from region of higher slope to lower slope.
-
-For example:
-Consider Manhattan and Brooklyn. Since Manhattan has a higher slope, the lateral flooding only occurs from Manhattan to Brooklyn, the system interaction is defined as follows: 
-
-If Manhattan has no floodwall constructed, the flood damage in Brooklyn increases by i%.
-However, if Brooklyn has no floodwall constructed, the flood damage in Manhattan remains the same.
-
-
-The python code for the cost calculations for the 4 environment defination defined in section A should be able to handle these system effects by:
-1. Identifying the adjacent region for each component
-2. Checking the floodwall construction status in the adjacent region
-3. Applying the i% increase to flood damage costs when conditions are met
+3. System State Tracking:
+   - Track floodwall construction status for each component
+   - Share status with affected components for damage calculations
 
 

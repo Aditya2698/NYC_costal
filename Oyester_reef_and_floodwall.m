@@ -45,9 +45,11 @@ cm_green = 0.00; %$/m
 % wa_nbs_m = 83.036*h^2- 114.42*h+ 48.601; % wave height reduction % per m along the shore
 carbon_green_c = 0.5/1000; %ton CO2 per m2
 cc_carbon_green = -(carbon_green_c)*w_green*unit_l;%$/m
+
 % carbon costs for maintenance
 carbon_green_m = 0.00; %ton CO2 per m2
 cm_carbon_green = -carbon_green_m*w_green*unit_l;%$/m
+
 % carbon uptake by green infra
 carbon_up_green = (3e-7)/(1000*1000); %ton CO2 per m2
 cu_carbon_green = carbon_up_green*w_green*unit_l;%$/m
