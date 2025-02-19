@@ -39,12 +39,12 @@ class TwoFloodwallCosts:
         self.h1 = self.t1 - self.b1  # Height of first floodwall
         self.h2 = self.t2 - self.b2  # Height of second floodwall
 
-    def calculate_flood_damage(self, state, system_state):
+    def calculate_flood_damage(self, water_levels, system_state):
         """
         Calculate flood damage costs based on water level and system state
         
         Args:
-            state: tuple (slr_state, surge_state)
+            water_levels: tuple (slr_value, surge_value) in meters
             system_state: int (0-3) representing system configuration:
                 0: No floodwalls
                 1: Only lower floodwall (F1)
@@ -54,9 +54,7 @@ class TwoFloodwallCosts:
         Returns:
             Dictionary containing monetary and carbon costs
         """
-        # Convert states to meters
-        slr_value = slr(state[0]) * 0.02  # 2cm discretization to meters
-        surge_value = surge(state[1]) * 0.1  # 10cm discretization to meters
+        slr_value, surge_value = water_levels
         total_height = slr_value + surge_value
         
         # Calculate flooded volume based on system state

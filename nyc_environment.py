@@ -18,7 +18,10 @@ class NYCEnvironment(Env):
         self.year = 0
         self.horizon = 39
         self.discount_factor = 0.97
-        self.interaction_factor = params.get('interaction_factor', 0.20)  # i%
+        self.interaction_factors = {
+            'higher_to_lower': params.get('higher_to_lower_factor', 0.20),  # i%
+            'lower_to_higher': params.get('lower_to_higher_factor', 0.15)   # j%
+        }
         
         # State space dimensions
         self.n_slr_states = 77
@@ -122,45 +125,77 @@ class NYCEnvironment(Env):
         next_slr, next_surge = self._sample_water_levels()
         self.water_state = np.array([next_slr, next_surge])
         
-        # 2. Update system states based on actions
+        # 2. Calculate water levels in meters
+        water_levels = (
+            slr(self.water_state[0]) * 0.01,  # cm to m
+            surge(self.water_state[1]) * 0.01  # cm to m
+        )
+        
+        # 3. Update system states based on actions
         self._update_system_states(actions)
         
-        # 3. Calculate costs for each component
-        component_costs = self._calculate_component_costs()
+        # 4. Calculate costs for each component
+        component_costs = self._calculate_component_costs(water_levels)
         
-        # 4. Apply system interactions
-        modified_costs = self._apply_system_interactions(component_costs)
+        # 5. Apply system interactions
+        modified_costs = self._apply_system_interactions(component_costs, water_levels)
         
-        # 5. Calculate total reward and prepare info
+        # 6. Apply discounting at component level and calculate total reward
         total_reward = 0
+        discounted_costs = {}
+        
         for comp_name, costs in modified_costs.items():
-            # Sum all cost components
-            comp_total = (costs['flood_damage'] + costs['flood_carbon'] + 
-                         costs['construction'] + costs['construction_carbon'] +
-                         costs['maintenance'] + costs['maintenance_carbon'])
-            if 'carbon_uptake' in costs:
-                comp_total += costs['carbon_uptake']
+            # Apply discount to each monetary cost component separately
+            discount_factor = self.discount_factor ** self.year
             
-            # Apply discount factor to monetary costs (not carbon, as SCC includes discount)
-            comp_total = self._apply_discount(comp_total, costs)
-            total_reward += comp_total
+            # Store discounted costs
+            discounted_costs[comp_name] = {
+                'flood_damage': costs['flood_damage'] * discount_factor,
+                'flood_carbon': costs['flood_carbon'],  # Already discounted through SCC
+                'construction': costs['construction'] * discount_factor,
+                'construction_carbon': costs['construction_carbon'],
+                'maintenance': costs['maintenance'] * discount_factor,
+                'maintenance_carbon': costs['maintenance_carbon']
+            }
+            
+            if 'carbon_uptake' in costs:
+                discounted_costs[comp_name]['carbon_uptake'] = costs['carbon_uptake']
+            
+            # Calculate total cost for this component by summing all cost components
+            component_total = (
+                # Monetary costs (discounted)
+                discounted_costs[comp_name]['flood_damage'] +
+                discounted_costs[comp_name]['construction'] +
+                discounted_costs[comp_name]['maintenance'] +
+                # Carbon costs (already discounted through SCC)
+                discounted_costs[comp_name]['flood_carbon'] +
+                discounted_costs[comp_name]['construction_carbon'] +
+                discounted_costs[comp_name]['maintenance_carbon']
+            )
+            
+            # Add carbon uptake if applicable
+            if 'carbon_uptake' in discounted_costs[comp_name]:
+                component_total += discounted_costs[comp_name]['carbon_uptake']
+            
+            # Add to total reward
+            total_reward += component_total
             
             # Store costs in component history
-            self.components[comp_name]['costs'].append(costs)
+            self.components[comp_name]['costs'].append(discounted_costs[comp_name])
         
-        # 6. Check if episode is done
+        # 7. Check if episode is done
         done = self.year >= self.horizon
         self.year += 1
         
-        # 7. Prepare observation and info
+        # 8. Prepare observation and info
         observation = {
             'water_state': self.water_state,
             'system_states': {comp: self.components[comp]['system_state'] 
-                            for comp in self.components}
+                             for comp in self.components}
         }
         
         info = {
-            'component_costs': modified_costs,
+            'component_costs': discounted_costs,  # Now contains discounted costs
             'year': self.year
         }
         
@@ -181,21 +216,21 @@ class NYCEnvironment(Env):
         
         return next_slr, next_surge
 
-    def _calculate_component_costs(self):
-        """Calculate base costs for each component"""
-        slr_value = slr(self.water_state[0])
-        surge_value = surge(self.water_state[1])
-        total_height = slr_value + surge_value
+    def _calculate_component_costs(self, water_levels):
+        """
+        Calculate base costs for each component
         
+        Args:
+            water_levels: Tuple of (slr_value, surge_value) in meters
+        """
         component_costs = {}
         for comp_name, comp in self.components.items():
             calculator = comp['calculator']
             system_state = comp['system_state']
             
             # Get flood damage costs
-            flood_costs = calculator.calculate_flood_damage(
-                self.water_state, system_state)
-            
+            flood_costs = calculator.calculate_flood_damage(water_levels, system_state)
+
             # Get construction costs if action was taken
             if len(comp['actions']) > 0:
                 last_action = comp['actions'][-1]
@@ -230,18 +265,71 @@ class NYCEnvironment(Env):
             
         return component_costs
 
-    def _apply_system_interactions(self, costs):
-        """Apply lateral flooding effects"""
-        modified_costs = costs.copy()
+    def _apply_system_interactions(self, costs, water_levels):
+        """
+        Apply lateral flooding effects considering bidirectional flow
         
-        for high_comp, low_comp in self.interaction_pairs:
-            if not self._has_critical_floodwall(high_comp):
-                # Increase flood damage of lower component by i%
-                flood_increase = self.interaction_factor
-                modified_costs[low_comp]['flood_damage'] *= (1 + flood_increase)
-                modified_costs[low_comp]['flood_carbon'] *= (1 + flood_increase)
+        Args:
+            costs: Dictionary of current costs for each component
+            water_levels: Tuple of (slr_value, surge_value) in meters
+        """
+        modified_costs = costs.copy()
+        total_height = water_levels[0] + water_levels[1]
+        
+        for comp_a, comp_b in self.interaction_pairs:
+            # Get critical floodwall parameters for both components
+            comp_a_has_wall = self._has_critical_floodwall(comp_a)
+            comp_b_has_wall = self._has_critical_floodwall(comp_b)
+            
+            if not (comp_a_has_wall and comp_b_has_wall):
+                # Get floodwall heights for both components
+                a_heights = self._get_critical_wall_heights(comp_a)
+                b_heights = self._get_critical_wall_heights(comp_b)
+                
+                # Check if water height is in critical range
+                if self._is_in_critical_range(total_height, a_heights):
+                    if not comp_b_has_wall:
+                        # B affects A (lower to higher)
+                        modified_costs[comp_a]['flood_damage'] *= (1 + self.interaction_factors['lower_to_higher'])
+                        modified_costs[comp_a]['flood_carbon'] *= (1 + self.interaction_factors['lower_to_higher'])
+                        
+                if self._is_in_critical_range(total_height, b_heights):
+                    if not comp_a_has_wall:
+                        # A affects B (higher to lower)
+                        modified_costs[comp_b]['flood_damage'] *= (1 + self.interaction_factors['higher_to_lower'])
+                        modified_costs[comp_b]['flood_carbon'] *= (1 + self.interaction_factors['higher_to_lower'])
         
         return modified_costs
+
+    def _is_in_critical_range(self, water_height, wall_heights):
+        """
+        Check if water height is between base and top of critical floodwall
+        
+        Args:
+            water_height: Total water height in meters
+            wall_heights: Tuple of (base_height, top_height) in meters
+        
+        Returns:
+            Boolean indicating if water height is in critical range
+        """
+        base_height, top_height = wall_heights
+        return base_height < water_height <= top_height
+
+    def _get_critical_wall_heights(self, comp_name):
+        """
+        Get base and top heights of critical floodwall for a component
+        
+        Args:
+            comp_name: Name of the component
+            
+        Returns:
+            Tuple of (base_height, top_height) in meters
+        """
+        calculator = self.components[comp_name]['calculator']
+        if comp_name in ['bronx', 'brooklyn']:
+            return (calculator.b2, calculator.t2)  # F2 is critical
+        else:
+            return (calculator.b2, calculator.t2)  # F is critical
 
     def _has_critical_floodwall(self, comp_name):
         """Check if component has its critical floodwall built"""
@@ -253,19 +341,6 @@ class NYCEnvironment(Env):
         # For nature-based solution environments
         else:
             return system_state in [2, 3]  # Has F
-
-    def _apply_discount(self, total, costs):
-        """Apply discount factor to monetary costs only"""
-        # Carbon costs already include discount through SCC
-        monetary_costs = (costs['flood_damage'] + costs['construction'] + 
-                         costs['maintenance'])
-        carbon_costs = (costs['flood_carbon'] + costs['construction_carbon'] + 
-                       costs['maintenance_carbon'])
-        if 'carbon_uptake' in costs:
-            carbon_costs += costs['carbon_uptake']
-            
-        return (monetary_costs * (self.discount_factor ** self.year) + 
-                carbon_costs)
 
     def reset(self):
         """Reset environment to initial state"""

@@ -46,23 +46,24 @@ class GreenSpaceCosts:
         self.t2 = params.floodwall_params['t2']
         self.h2 = self.t2 - self.b2  # Height of floodwall
 
-    def calculate_flood_damage(self, state, system_state):
+    def calculate_flood_damage(self, water_levels, system_state):
         """
         Calculate flood damage costs based on water level and system state
         
         Args:
-            state: tuple (slr_state, surge_state)
+            water_levels: tuple (slr_value, surge_value) in meters
             system_state: int (0-3) representing system configuration:
                 0: No protection
                 1: Only green space
                 2: Only floodwall
                 3: Both green space and floodwall
+        
+        Returns:
+            Dictionary containing monetary and carbon costs
         """
-        # Convert states to meters
-        slr_value = slr(state[0]) * 0.02  # 2cm discretization to meters
-        surge_value = surge(state[1]) * 0.1  # 10cm discretization to meters
-        total_height = slr_value + surge_value  # meters
-            
+        slr_value, surge_value = water_levels
+        total_height = slr_value + surge_value
+        
         # Calculate flooded area based on system state
         if system_state == 0:  # No protection
             # Adjust water level for seawall

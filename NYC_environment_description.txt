@@ -46,7 +46,7 @@ B) Component Details and Parameters:
 
 The NYC environment consists of 5 components representing different boroughs/regions:
 
-1. Bronx (Component 1): Define using component defination i i.e. two floodwalls F1 and F2
+1. Bronx (Component 1): Define using @two_floodwall_costs.py
    - Exposure value (e): 2.5 million $/m width
    - Slope (s): 0.00149231 
    - Vulnerability factor (f_damage): 0.17
@@ -54,7 +54,7 @@ The NYC environment consists of 5 components representing different boroughs/reg
    - City height (h): 9.75 m
    - City depth (d): 6.5 km
 
-2. Manhattan (Component 2): Define using component defination ii i.e. green_space and floodwall F with initial seawall height of 1.5 m
+2. Manhattan (Component 2): Define using @green_space_costs.py with initial seawall height of 1.5 m
    - Exposure value (e): 15.3 million $/m width
    - Slope (s): 0.0085 
    - Vulnerability factor (f_damage): 0.07
@@ -62,7 +62,7 @@ The NYC environment consists of 5 components representing different boroughs/reg
    - City height (h): 8.5 m
    - City depth (d): 1.0 km
 
-3. Brooklyn (Component 3): Define using component defination i i.e. two floodwalls F1 and F2
+3. Brooklyn (Component 3): Define using @two_floodwall_costs.py
    - Exposure value (e): 4.5 million $/m width
    - Slope (s): 0.00244643
    - Vulnerability factor (f_damage): 0.10
@@ -70,7 +70,7 @@ The NYC environment consists of 5 components representing different boroughs/reg
    - City height (h): 13.7 m
    - City depth (d): 5.6 km
 
-4. Queens (Component 4): Define using component defination iii i.e. oyster reef and floodwall F
+4. Queens (Component 4): Define using @oyster_reef_costs.py
    - Exposure value (e): 5.5 million $/m width
    - Slope (s): 0.00223729
    - Vulnerability factor (f_damage): 0.14
@@ -78,7 +78,7 @@ The NYC environment consists of 5 components representing different boroughs/reg
    - City height (h): 19.8 m
    - City depth (d): 8.85 km
 
-5. Staten Island (Component 5): Define using component defination iv i.e. salt marsh and floodwall F
+5. Staten Island (Component 5): Define using @salt_marsh_costs.py
    - Exposure value (e): 3.0 million $/m width
    - Slope (s): 0.001905
    - Vulnerability factor (f_damage): 0.16
@@ -106,24 +106,30 @@ Critical Floodwall Definition:
 - Two-floodwall environments (Bronx, Brooklyn): F2 is critical
 - Nature-based solution environments (Manhattan, Queens, Staten Island): F is critical
 
-Flooding Effect Rule:
-If component A can affect component B (A has higher slope):
-- When A's critical floodwall is NOT constructed:
-  * B's flood damage is increased by i%
-- When A's critical floodwall IS constructed:
-  * No additional effect on B
-- B's floodwall state never affects A
+Flooding Effect Rules:
+For each interaction pair (A, B):
+1. When water height is between base and top of critical floodwall:
+   - If A's critical floodwall is NOT constructed:
+     * B's flood damage is increased by i%
+   - If B's critical floodwall is NOT constructed:
+     * A's flood damage is increased by j%
+2. No lateral flow occurs if both components have their critical floodwalls constructed
+3. Interaction factors i% and j% can be different:
+   - i%: Increase in flood damage for lower slope region
+   - j%: Increase in flood damage for higher slope region
 
 Implementation Requirements:
 1. Each component needs:
-   - List of components that can affect it (higher slope components)
-   - Method to check if those components have their critical floodwall
-   - Factor i to increase flood damage when affected
+   - List of components that can affect it
+   - Method to check critical floodwall status
+   - Base and top heights of critical floodwall
+   - Factors i% and j% for flood damage increase
 
 2. Cost Calculator Changes:
    - Add method to check critical floodwall status
+   - Add method to get critical floodwall heights
    - Modify flood damage calculation to accept interaction effects
-   - Apply i% increase when affected by higher slope components
+   - Apply appropriate increase (i% or j%) based on interaction type
 
 3. System State Tracking:
    - Track floodwall construction status for each component

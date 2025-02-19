@@ -4,7 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="78c1d492-abb9-48aa-8265-5ce8fa04d224" name="Changes" comment="Defined the NYC environment as per NYC_environment_description.txt.&#10; Added Python code for two_floodwall_costs.py and green_space_costs.py and" />
+    <list default="true" id="78c1d492-abb9-48aa-8265-5ce8fa04d224" name="Changes" comment="Modified system interection to consider bi-lateral flow">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Implementation_guide.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Implementation_guide.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/NYC_environment_description.txt" beforeDir="false" afterPath="$PROJECT_DIR$/NYC_environment_description.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cost_calculators/green_space_costs.py" beforeDir="false" afterPath="$PROJECT_DIR$/cost_calculators/green_space_costs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cost_calculators/oyster_reef_costs.py" beforeDir="false" afterPath="$PROJECT_DIR$/cost_calculators/oyster_reef_costs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cost_calculators/salt_marsh_costs.py" beforeDir="false" afterPath="$PROJECT_DIR$/cost_calculators/salt_marsh_costs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cost_calculators/two_floodwall_costs.py" beforeDir="false" afterPath="$PROJECT_DIR$/cost_calculators/two_floodwall_costs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nyc_environment.py" beforeDir="false" afterPath="$PROJECT_DIR$/nyc_environment.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -25,14 +34,14 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -65,7 +74,23 @@
       <option name="project" value="LOCAL" />
       <updated>1738964627668</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Added nyc_environment.py">
+      <option name="closed" value="true" />
+      <created>1739239487722</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1739239487722</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Modified system interection to consider bi-lateral flow">
+      <option name="closed" value="true" />
+      <created>1739987123716</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1739987123716</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -81,6 +106,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Defined the NYC environment as per NYC_environment_description.txt.&#10; Added Python code for two_floodwall_costs.py and green_space_costs.py and" />
-    <option name="LAST_COMMIT_MESSAGE" value="Defined the NYC environment as per NYC_environment_description.txt.&#10; Added Python code for two_floodwall_costs.py and green_space_costs.py and" />
+    <MESSAGE value="Added nyc_environment.py" />
+    <MESSAGE value="Modified system interection to consider bi-lateral flow" />
+    <option name="LAST_COMMIT_MESSAGE" value="Modified system interection to consider bi-lateral flow" />
   </component>
 </project>

@@ -22,37 +22,51 @@ Implementation Steps
 
 1. **Component Initialization and Parameter Setup**
    - For each of the 5 NYC components (Bronx, Manhattan, Brooklyn, Queens, Staten Island):
-     - Define local parameters (exposure value, slope, vulnerability factor, city height, city depth, etc.) as described in Section B.
+     - Define local parameters (exposure value, slope, vulnerability factor, city height, city depth, etc.) as described in Section B of the NYC_environment_description.txt file.
      - Instantiate the appropriate cost calculator module:
-       * Bronx and Brooklyn: TwoFloodwallCosts
-       * Manhattan: GreenSpaceCosts
-       * Queens: OysterReefCosts
-       * Staten Island: SaltMarshCosts
+       * Bronx and Brooklyn: TwoFloodwallCosts.py
+       * Manhattan: GreenSpaceCosts.py
+       * Queens: OysterReefCosts.py
+       * Staten Island: SaltMarshCosts.py
      - Initialize a local system state for the component (indicating if the critical floodwall is built).
-     - (Optional) Maintain an action history if desired for overall environment logging, but note that system interactions only require the current system state.
+     - Maintain an action history 
 
 2. **Water Level State Transition**
    - Load and use SLR and storm surge transition matrices (as in single_wedge_2_floodwall_environment.py) to update the water level state for each timestep.
+   - The state space for SLR and storm surge is defined in Section 1 of the NYC_environment_description.txt file.
+   - The SLR transiton matrix is saved as 't_slr_245.mat' which is a cell 1x131 cell array. Each cell corresponds to the a year an is 77x77 defininng the transition matrix for that year.
+   - The storm surge transition matrix is saved as 't_surge.mat' which is a 1x1 cell with a 72x72 matrix defining the transition probabilities for the stationary storm surge.
+   - Sample the SLR and storm surge transition matrices at each timestep as done in single_wedge_2_floodwall_environment.py.
    - The resulting water level (total height) is common and available to all components for computing flood damage.
 
 3. **Local Cost Calculation for Each Component**
    - For each component, based on its local system state and the current total water level:
-     - Call the cost calculator's methods to compute:
+     - Call the cost calculator's appropriate methods to compute:
        * Flood damage cost (including its carbon component),
        * Construction cost (monetary and carbon),
        * Maintenance cost (monetary and carbon),
        * Carbon uptake (if applicable).
      - Multiply all carbon cost components by the current Social Cost of Carbon (SCC) for conversion into monetary terms.
+      - The SCC is saved in 'discounted_sum_scc_7_3.mat' is 1x60 vector. Each element corresponds to a year and defining the SCC for that year. Note that SCC already accounts for discounting. So all carbon costs are already discounted.
    - Store these values separately for each component (e.g., in a dictionary or log structure).
 
 4. **System Interaction Handling**
-   - Predefine the set of interaction pairs with the information about slopes. For example, list the pairs (Higher slope → Lower slope) such as:
-     - Manhattan (slope = 0.0085) → Brooklyn (slope = 0.00244643)
-     - Manhattan → Bronx, Brooklyn → Queens, Brooklyn → Bronx, Brooklyn → Staten Island, etc.
-   - For each interaction pair:
-     - Check the higher-slope component's current system state (only the present configuration is needed) to determine if its critical floodwall is built. (Recall that for two-floodwall environments, F2 is critical; for the others, the single floodwall F is critical.)
-     - If the critical floodwall in the higher-slope component is **not** constructed, increase the flood damage cost of the lower-slope component by a factor of i% (e.g., multiply by (1 + i), where i is the generic percentage expressed as a decimal).
-   - Ensure that this lateral effect is unidirectional: only from higher to lower slope.
+   - System Interaction Implementation:
+    1. Initialize interaction parameters:
+       - Define i% (higher_to_lower_factor) for increase in flood damage of lower slope region
+       - Define j% (lower_to_higher_factor) for increase in flood damage of higher slope region
+    
+    2. For each interaction pair:
+       - Check if water height is between base and top of critical floodwall
+       - If either component's critical floodwall is not constructed:
+         * Apply i% increase to lower slope region's flood damage
+         * Apply j% increase to higher slope region's flood damage
+       - No increase if both critical floodwalls are constructed
+    
+    3. Critical Range Check:
+       - Only apply interaction effects when water height is in critical range
+       - Critical range is defined by base and top heights of critical floodwall
+       - These heights are same for both components in an interaction pair
 
 5. **Reward Aggregation**
    - **Per Component:** Maintain a detailed record including:
@@ -60,8 +74,9 @@ Implementation Steps
      - Maintenance cost (monetary and carbon cost),
      - Flood risk (flood damage cost) and its carbon cost post system interaction adjustment,
      - Carbon uptake credit (if applicable).
+   - Note that monetory cost need to be discounted. The carbon cost is already discounted.
    - **Overall Environment:** Sum the rewards (i.e., costs) from all 5 components to produce an aggregated overall cost.
-   - Apply any discount factor if needed before returning the overall reward.
+   
 
 6. **Action Handling and System State History**
    - Define the environment's state and action space as a vector of actions corresponding to a component.
